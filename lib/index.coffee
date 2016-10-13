@@ -4,6 +4,7 @@ async = require "async"
 genericPool = require "generic-pool"
 debug = require("debug")("thrift-pool")
 
+QUEUE_TIMEOUT_MESSAGE = "Thrift-pool: queue timeout"
 TIMEOUT_MESSAGE = "Thrift-pool: Connection timeout"
 CLOSE_MESSAGE = "Thrift-pool: Connection closed"
 
@@ -116,9 +117,9 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
       debug {connection}
       return cb err if err?
       queueTime = Date.now() - queueStart
-      if thrift_options.timeout? and queueTime > thrift_options.timeout
-        return cb new Error TIMEOUT_MESSAGE
       cb = _.once cb
+      if thrift_options.timeout? and queueTime > thrift_options.timeout
+        return cb new Error QUEUE_TIMEOUT_MESSAGE
       cb_error = (err) ->
         debug "in error callback, post-acquire listener"
         cb err
