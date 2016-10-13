@@ -108,12 +108,16 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
   #   - calls client with fn and passed args and callback
   #   - connection is released before results are returned
   #  @return, function that takes in arguments and a callback
-  wrap_thrift_fn = (fn) -> (args..., cb) ->
+  wrap_thrift_fn = (fn) -> (args...) ->
+    queueStart = Date.now()
     pool.acquire (err, connection) ->
       debug "Connection acquired"
       debug {err}
       debug {connection}
       return cb err if err?
+      queueTime = Date.now() - queueStart
+      if thrift_options.timeout? and queueTime > thrift_options.timeout
+        return cb new Error TIMEOUT_MESSAGE
       cb = _.once cb
       cb_error = (err) ->
         debug "in error callback, post-acquire listener"
@@ -128,11 +132,16 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
       client = thrift.createClient service, connection
       debug "Client created"
       debug {client}
-      client[fn] args..., (err, results...) ->
-        debug "In client callback"
-        remove_listeners connection, cb_error, cb_timeout, cb_close
+      try
+        client[fn] args..., (err, results...) ->
+          debug "In client callback"
+          remove_listeners connection, cb_error, cb_timeout, cb_close
+          pool.release connection
+          cb err, results...
+      catch err
+        connection.__ended = true
         pool.release connection
-        cb err, results...
+        cb err
 
   # The following returns a new object with all of the keys of an
   # initialized client class.
