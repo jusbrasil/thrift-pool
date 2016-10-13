@@ -83,7 +83,7 @@ create_pool = function(thrift, pool_options, thrift_options) {
       if (pool_options.ttl == null) {
         return true;
       }
-      return connection.__reap_time < Date.now();
+      return connection.__reap_time > Date.now();
     },
     log: pool_options.log,
     max: pool_options.max_connections,
