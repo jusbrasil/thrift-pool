@@ -130,11 +130,11 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
   };
   wrap_thrift_fn = function(fn) {
     return function() {
-      var args, queueStart;
-      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      var args, cb, queueStart, _j;
+      args = 2 <= arguments.length ? __slice.call(arguments, 0, _j = arguments.length - 1) : (_j = 0, []), cb = arguments[_j++];
       queueStart = Date.now();
       return pool.acquire(function(err, connection) {
-        var cb, cb_close, cb_error, cb_timeout, client, queueTime;
+        var cb_close, cb_error, cb_timeout, client, queueTime;
         debug("Connection acquired");
         debug({
           err: err
