@@ -109,7 +109,7 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
   #   - calls client with fn and passed args and callback
   #   - connection is released before results are returned
   #  @return, function that takes in arguments and a callback
-  wrap_thrift_fn = (fn) -> (args...) ->
+  wrap_thrift_fn = (fn) -> (args..., cb) ->
     queueStart = Date.now()
     pool.acquire (err, connection) ->
       debug "Connection acquired"
