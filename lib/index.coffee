@@ -119,6 +119,7 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
       queueTime = Date.now() - queueStart
       cb = _.once cb
       if thrift_options.timeout? and queueTime > thrift_options.timeout
+        pool.release connection
         return cb new Error QUEUE_TIMEOUT_MESSAGE
       cb_error = (err) ->
         debug "in error callback, post-acquire listener"
