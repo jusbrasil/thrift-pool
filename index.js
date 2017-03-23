@@ -93,7 +93,7 @@ create_pool = function(thrift, pool_options, thrift_options) {
 };
 
 module.exports = function(thrift, service, pool_options, thrift_options) {
-  var add_listeners, key, pool, remove_listeners, wrap_thrift_fn, _i, _len, _ref;
+  var add_listeners, key, pool, remove_listeners, wrap_thrift_fn, wrappedClient, _i, _len, _ref;
   if (pool_options == null) {
     pool_options = {};
   }
@@ -134,7 +134,7 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
       args = 2 <= arguments.length ? __slice.call(arguments, 0, _j = arguments.length - 1) : (_j = 0, []), cb = arguments[_j++];
       queueStart = Date.now();
       return pool.acquire(function(err, connection) {
-        var cb_close, cb_error, cb_timeout, client, queueTime;
+        var cb_close, cb_error, cb_timeout, client, queueTime, release;
         debug("Connection acquired");
         debug({
           err: err
@@ -147,20 +147,26 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
         }
         queueTime = Date.now() - queueStart;
         cb = _.once(cb);
+        release = _.once(function() {
+          return pool.release(connection);
+        });
         if ((thrift_options.timeout != null) && queueTime > thrift_options.timeout) {
-          pool.release(connection);
+          release();
           return cb(new Error(QUEUE_TIMEOUT_MESSAGE));
         }
         cb_error = function(err) {
           debug("in error callback, post-acquire listener");
+          release();
           return cb(err);
         };
         cb_timeout = function() {
           debug("in timeout callback, post-acquire listener");
+          release();
           return cb(new Error(TIMEOUT_MESSAGE));
         };
         cb_close = function() {
           debug("in close callback, post-acquire listener");
+          release();
           return cb(new Error(CLOSE_MESSAGE));
         };
         add_listeners(connection, cb_error, cb_timeout, cb_close);
@@ -175,21 +181,23 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
             err = arguments[0], results = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
             debug("In client callback");
             remove_listeners(connection, cb_error, cb_timeout, cb_close);
-            pool.release(connection);
+            release();
             return cb.apply(null, [err].concat(__slice.call(results)));
           }]));
         } catch (_error) {
           err = _error;
           connection.__ended = true;
-          pool.release(connection);
+          release();
           return cb(err);
         }
       });
     };
   };
-  return _.mapValues(_.clone(service.Client.prototype), function(fn, name) {
+  wrappedClient = _.mapValues(_.clone(service.Client.prototype), function(fn, name) {
     return wrap_thrift_fn(name);
   });
+  wrappedClient.connectionPool = pool;
+  return wrappedClient;
 };
 
 _.extend(module.exports, {
