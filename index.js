@@ -151,7 +151,9 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
         }
         cb = _.once(cb);
         release = _.once(function() {
-          return pool.release(connection);
+          return setImmediate(function() {
+            return pool.release(connection);
+          });
         });
         if ((thrift_options.timeout != null) && queueTime > thrift_options.timeout) {
           release();

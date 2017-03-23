@@ -122,7 +122,8 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
 
       cb = _.once cb
       release = _.once () ->
-        pool.release connection
+        setImmediate () ->
+          pool.release connection
 
       if thrift_options.timeout? and queueTime > thrift_options.timeout
         release()
