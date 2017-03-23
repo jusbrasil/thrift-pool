@@ -117,6 +117,9 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
       debug {connection}
       return cb err if err?
       queueTime = Date.now() - queueStart
+      if pool_options.observeQueueTime
+        pool_options.observeQueueTime(queueTime)
+
       cb = _.once cb
       release = _.once () ->
         pool.release connection

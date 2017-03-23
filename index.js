@@ -146,6 +146,9 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
           return cb(err);
         }
         queueTime = Date.now() - queueStart;
+        if (pool_options.observeQueueTime) {
+          pool_options.observeQueueTime(queueTime);
+        }
         cb = _.once(cb);
         release = _.once(function() {
           return pool.release(connection);
