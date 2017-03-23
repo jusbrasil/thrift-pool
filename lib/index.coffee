@@ -156,8 +156,11 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
   # Note: _.mapValues only supports "simple", "vanilla" objects that
   # are not associated with a class.  Since service.Client.prototype
   # does not fall into that category, need to call _.clone first
-  _.mapValues _.clone(service.Client.prototype), (fn, name) ->
+  wrappedClient = _.mapValues _.clone(service.Client.prototype), (fn, name) ->
     wrap_thrift_fn name
+
+  wrappedClient.connectionPool = pool
+  wrappedClient
 
 # For unit testing
 _.extend module.exports, _private: {create_pool, TIMEOUT_MESSAGE, CLOSE_MESSAGE}
