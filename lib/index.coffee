@@ -118,17 +118,23 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
       return cb err if err?
       queueTime = Date.now() - queueStart
       cb = _.once cb
-      if thrift_options.timeout? and queueTime > thrift_options.timeout
+      release = _.once () ->
         pool.release connection
+
+      if thrift_options.timeout? and queueTime > thrift_options.timeout
+        release()
         return cb new Error QUEUE_TIMEOUT_MESSAGE
       cb_error = (err) ->
         debug "in error callback, post-acquire listener"
+        release()
         cb err
       cb_timeout = ->
         debug "in timeout callback, post-acquire listener"
+        release()
         cb new Error TIMEOUT_MESSAGE
       cb_close = ->
         debug "in close callback, post-acquire listener"
+        release()
         cb new Error CLOSE_MESSAGE
       add_listeners connection, cb_error, cb_timeout, cb_close
       client = thrift.createClient service, connection
@@ -138,11 +144,11 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
         client[fn] args..., (err, results...) ->
           debug "In client callback"
           remove_listeners connection, cb_error, cb_timeout, cb_close
-          pool.release connection
+          release()
           cb err, results...
       catch err
         connection.__ended = true
-        pool.release connection
+        release()
         cb err
 
   # The following returns a new object with all of the keys of an
