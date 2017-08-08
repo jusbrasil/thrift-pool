@@ -128,20 +128,27 @@ module.exports = (thrift, service, pool_options = {}, thrift_options = {}) ->
       if thrift_options.timeout? and queueTime > thrift_options.timeout
         release()
         return cb new Error QUEUE_TIMEOUT_MESSAGE
+
       cb_error = (err) ->
         debug "in error callback, post-acquire listener"
+        connection.__ended = true
         release()
         cb err
+
       cb_timeout = ->
         debug "in timeout callback, post-acquire listener"
         release()
         cb new Error TIMEOUT_MESSAGE
+
       cb_close = ->
         debug "in close callback, post-acquire listener"
+        connection.__ended = true
         release()
         cb new Error CLOSE_MESSAGE
+
       add_listeners connection, cb_error, cb_timeout, cb_close
       client = thrift.createClient service, connection
+
       debug "Client created"
       debug {client}
       try

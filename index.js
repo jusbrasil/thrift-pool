@@ -161,6 +161,7 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
         }
         cb_error = function(err) {
           debug("in error callback, post-acquire listener");
+          connection.__ended = true;
           release();
           return cb(err);
         };
@@ -171,6 +172,7 @@ module.exports = function(thrift, service, pool_options, thrift_options) {
         };
         cb_close = function() {
           debug("in close callback, post-acquire listener");
+          connection.__ended = true;
           release();
           return cb(new Error(CLOSE_MESSAGE));
         };
